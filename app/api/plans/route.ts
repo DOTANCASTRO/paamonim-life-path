@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { format, startOfMonth } from 'date-fns';
 import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
 import { validateTitle, validateBudget, validateEvents } from '@/lib/validate';
-import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { createSupabaseRouteHandlerClient } from '@/lib/supabase-server';
 
 const LIMIT = 20;
 const WINDOW_MS = 60 * 60 * 1000;
@@ -15,6 +15,8 @@ export async function POST(req: NextRequest) {
   if (!rl.allowed) {
     return NextResponse.json({ error: 'יותר מדי בקשות. נסה שוב מאוחר יותר.' }, { status: 429 });
   }
+
+  const res = NextResponse.next();
 
   try {
     const body = await req.json();
@@ -27,8 +29,8 @@ export async function POST(req: NextRequest) {
       : { income: 0, expenses: 0, debtRepayment: 0, bankBalance: 0, startMonth };
     const events = body.events ? validateEvents(body.events) : [];
 
-    // Attach to logged-in user if session exists
-    const supabase = await createSupabaseServerClient();
+    // Read session from request cookies
+    const supabase = createSupabaseRouteHandlerClient(req, res);
     const { data: { user } } = await supabase.auth.getUser();
 
     const plan = await createPlan({ id, title, budget, events }, user?.id);
