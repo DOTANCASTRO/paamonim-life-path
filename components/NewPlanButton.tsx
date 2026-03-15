@@ -13,8 +13,11 @@ export default function NewPlanButton({ large }: Props) {
   const [title, setTitle] = useState('');
   const [open, setOpen] = useState(false);
 
+  const [error, setError] = useState('');
+
   const create = async () => {
     setLoading(true);
+    setError('');
     try {
       const res = await fetch('/api/plans', {
         method: 'POST',
@@ -22,8 +25,14 @@ export default function NewPlanButton({ large }: Props) {
         body: JSON.stringify({ title: title.trim() || 'תכנית חדשה' }),
       });
       const plan = await res.json();
+      if (!res.ok || !plan.id) {
+        setError(plan.error ?? 'שגיאה ביצירת תכנית');
+        setLoading(false);
+        return;
+      }
       router.push(`/plan/${plan.id}`);
     } catch {
+      setError('שגיאת רשת. נסה שוב.');
       setLoading(false);
     }
   };
@@ -42,7 +51,9 @@ export default function NewPlanButton({ large }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col items-start gap-1">
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      <div className="flex items-center gap-2">
       <input
         autoFocus
         type="text"
@@ -62,6 +73,7 @@ export default function NewPlanButton({ large }: Props) {
       <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 text-sm">
         ביטול
       </button>
+    </div>
     </div>
   );
 }
