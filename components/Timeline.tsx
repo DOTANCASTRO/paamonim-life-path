@@ -9,9 +9,10 @@ import {
   CartesianGrid,
   Tooltip,
   ReferenceLine,
+  ReferenceArea,
 } from 'recharts';
 import { TimelineResult, LifeEvent } from '@/lib/types';
-import { parseISO, format } from 'date-fns';
+import { parseISO, addMonths, format } from 'date-fns';
 
 const HEBREW_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
 
@@ -53,58 +54,71 @@ const CustomTooltip = ({ active, payload }: any) => {
   );
 };
 
-// Custom label rendered above the reference line
-const EventLabel = ({ viewBox, names }: { viewBox?: { x: number; y: number; height: number }; names: string[] }) => {
+// Simple text-only label for one-time events (no background box)
+const PointLabel = ({ viewBox, names }: { viewBox?: any; names: string[] }) => {
   if (!viewBox) return null;
   const { x, y } = viewBox;
-  const lineHeight = 13;
-  const padding = 4;
-  const maxWidth = 110;
-  // Truncate long names
-  const labels = names.map(n => n.length > 14 ? n.slice(0, 13) + '…' : n);
-
   return (
     <g>
-      <rect
-        x={x + 4}
-        y={y + 4}
-        width={maxWidth}
-        height={labels.length * lineHeight + padding * 2}
-        rx={3}
-        fill="white"
-        stroke="#d1d5db"
-        strokeWidth={1}
-        opacity={0.95}
-      />
-      {labels.map((name, i) => (
+      <circle cx={x} cy={y + 10} r={3} fill="#0C4DA2" />
+      {names.map((name, i) => (
         <text
           key={i}
-          x={x + 8}
-          y={y + 4 + padding + (i + 1) * lineHeight - 2}
+          x={x + 6}
+          y={y + 14 + i * 13}
           fontSize={10}
-          fill="#374151"
+          fill="#0C4DA2"
+          fontWeight="600"
           textAnchor="start"
         >
-          {name}
+          {name.length > 16 ? name.slice(0, 15) + '…' : name}
         </text>
       ))}
     </g>
   );
 };
 
+// Label inside a ReferenceArea (duration events)
+const AreaLabel = ({ viewBox, name, direction }: { viewBox?: any; name: string; direction: 'burden' | 'relief' }) => {
+  if (!viewBox) return null;
+  const { x, y } = viewBox;
+  const color = direction === 'burden' ? '#dc2626' : '#16a34a';
+  const short = name.length > 16 ? name.slice(0, 15) + '…' : name;
+  return (
+    <text x={x + 4} y={y + 14} fontSize={10} fill={color} fontWeight="600" textAnchor="start">
+      {short}
+    </text>
+  );
+};
+
 export default function Timeline({ result, events }: Props) {
   const chartData = result.months.map(m => ({ ...m }));
   const hasOverrun = result.overrunMonths > 0;
+  const lastLabel = chartData[chartData.length - 1]?.label ?? '';
 
-  // Group named events by their start month label
-  const eventsByMonth = new Map<string, string[]>();
+  // Separate events into one-time (point markers) and duration (area bands)
+  const pointEvents = new Map<string, string[]>(); // monthLabel → names[]
+  const durationEvents: { x1: string; x2: string; name: string; direction: 'burden' | 'relief' }[] = [];
+
   for (const e of events) {
     if (!e.name) continue;
-    const label = toHebrewLabel(e.startMonth);
-    // Only show if this month exists in the chart data
-    if (!chartData.find(m => m.label === label)) continue;
-    if (!eventsByMonth.has(label)) eventsByMonth.set(label, []);
-    eventsByMonth.get(label)!.push(e.name);
+    const startLabel = toHebrewLabel(e.startMonth);
+    if (!chartData.find(m => m.label === startLabel)) continue;
+
+    if (e.duration === 'oneTime') {
+      if (!pointEvents.has(startLabel)) pointEvents.set(startLabel, []);
+      pointEvents.get(startLabel)!.push(e.name);
+    } else {
+      let endLabel: string;
+      if (e.duration === 'forever') {
+        endLabel = lastLabel;
+      } else {
+        const endDate = addMonths(parseISO(e.startMonth), (e.duration as number) - 1);
+        const candidate = toHebrewLabel(format(endDate, 'yyyy-MM-dd'));
+        endLabel = chartData.find(m => m.label === candidate) ? candidate : lastLabel;
+      }
+      durationEvents.push({ x1: startLabel, x2: endLabel, name: e.name, direction: e.direction });
+    }
   }
 
   return (
@@ -125,7 +139,7 @@ export default function Timeline({ result, events }: Props) {
 
       {/* Chart */}
       <ResponsiveContainer width="100%" height={360}>
-        <LineChart data={chartData} margin={{ top: 60, right: 20, left: 20, bottom: 5 }}>
+        <LineChart data={chartData} margin={{ top: 40, right: 20, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis
             dataKey="label"
@@ -140,18 +154,32 @@ export default function Timeline({ result, events }: Props) {
           />
           <Tooltip content={<CustomTooltip />} />
 
+          {/* Duration bands — rendered before the line so line sits on top */}
+          {durationEvents.map((ev, i) => (
+            <ReferenceArea
+              key={i}
+              x1={ev.x1}
+              x2={ev.x2}
+              fill={ev.direction === 'burden' ? '#fee2e2' : '#dcfce7'}
+              fillOpacity={0.5}
+              stroke={ev.direction === 'burden' ? '#fca5a5' : '#86efac'}
+              strokeWidth={1}
+              label={<AreaLabel name={ev.name} direction={ev.direction} />}
+            />
+          ))}
+
           {/* Zero line */}
           <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} strokeDasharray="4 4" />
 
-          {/* Event start markers */}
-          {Array.from(eventsByMonth.entries()).map(([monthLabel, names]) => (
+          {/* One-time event markers */}
+          {Array.from(pointEvents.entries()).map(([monthLabel, names]) => (
             <ReferenceLine
               key={monthLabel}
               x={monthLabel}
               stroke="#0C4DA2"
               strokeWidth={1.5}
               strokeDasharray="3 3"
-              label={<EventLabel names={names} />}
+              label={<PointLabel names={names} />}
             />
           ))}
 
@@ -167,8 +195,24 @@ export default function Timeline({ result, events }: Props) {
         </LineChart>
       </ResponsiveContainer>
 
+      {/* Legend */}
+      <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-3 rounded bg-red-100 border border-red-200" />
+          <span>הכבדה (משך)</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-3 rounded bg-green-100 border border-green-200" />
+          <span>הקלה (משך)</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-0.5 h-3 bg-[#0C4DA2] opacity-60" style={{ borderLeft: '2px dashed #0C4DA2' }} />
+          <span>אירוע חד-פעמי</span>
+        </div>
+      </div>
+
       {/* Year summary strip */}
-      <div className="mt-4 grid grid-cols-10 gap-1">
+      <div className="mt-3 grid grid-cols-10 gap-1">
         {Array.from({ length: 10 }, (_, yearIdx) => {
           const yearMonths = result.months.slice(yearIdx * 12, yearIdx * 12 + 12);
           const overruns = yearMonths.filter(m => m.isOverrun).length;
