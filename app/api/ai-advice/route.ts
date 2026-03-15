@@ -23,35 +23,19 @@ export async function POST(req: NextRequest) {
       `${i + 1}. ${e.name} | ${DIRECTION_LABELS[e.direction]} | מתחיל: ${e.startMonth} | עדיפות: ${PRIORITY_LABELS[e.priority]} | סכום: ₪${e.direction === 'burden' ? e.duration === 'oneTime' ? e.totalAmount : e.monthlyAmount : e.duration === 'oneTime' ? e.totalAmount : e.monthlyAmount} ${e.duration === 'oneTime' ? '(חד-פעמי)' : e.duration === 'forever' ? '(לתמיד)' : `(${e.duration} חודשים)`}`
     ).join('\n');
 
-    const prompt = `אתה יועץ פיננסי מומחה של עמותת פעמונים. אתה עוזר למשפחות לנהל את התקציב שלהן באופן מציאותי ואמפתי.
+    const prompt = `אתה יועץ פיננסי של פעמונים. ענה בעברית פשוטה וישירה. עד 20 שורות, ללא פתיחות מיותרות.
 
-**נתוני התקציב הבסיסי:**
-- הכנסות חודשיות: ₪${budget.income.toLocaleString()}
-- הוצאות חודשיות: ₪${budget.expenses.toLocaleString()}
-- החזר חובות: ₪${budget.debtRepayment.toLocaleString()}
-- יתרה בבנק כיום: ₪${budget.bankBalance.toLocaleString()}
-- עודף/גרעון חודשי בסיסי: ₪${(budget.income - budget.expenses - budget.debtRepayment).toLocaleString()}
+תקציב: הכנסות ₪${budget.income.toLocaleString()} | הוצאות ₪${budget.expenses.toLocaleString()} | חובות ₪${budget.debtRepayment.toLocaleString()} | יתרה ₪${budget.bankBalance.toLocaleString()} | עודף חודשי ₪${(budget.income - budget.expenses - budget.debtRepayment).toLocaleString()}
+חריגה: ${result.overrunMonths} חודשים | ראשונה: ${result.firstOverrunMonth ?? 'אין'} | יתרה מינימלית: ₪${result.worstBalance.toLocaleString()}
 
-**אירועי חיים מתוכננים:**
+אירועים:
 ${eventsText}
 
-**תוצאות הניתוח:**
-- חודשי חריגה: ${result.overrunMonths}
-- חודש החריגה הראשון: ${result.firstOverrunMonth ?? 'אין'}
-- יתרה מינימלית: ₪${result.worstBalance.toLocaleString()}
-
-**המשימה שלך:**
-ספק המלצות מעשיות ומפורטות כיצד להתמודד עם החריגה בתקציב. התמקד ב:
-1. אירועים לפי סדר עדיפות — התחל מ"רצוי", המשך ל"חשוב", ורק לבסוף "בלתי נמנע"
-2. לכל אירוע בעייתי — הצע פעולה קונקרטית: דחייה, צמצום היקף, פריסה לתשלומים, ביטול
-3. אם יש חריגה קטנה — האם ניתן לגשר עם חסכון קיים?
-4. טיפ אחד ייחודי שמתאים למצב הספציפי הזה
-
-כתוב בעברית, בשפה ברורה וחמה. אורך: 200-350 מילים. מבנה: פסקאות קצרות עם כותרות קצרות מודגשות.`;
+תן המלצות קצרות ומעשיות: מה לדחות, מה לצמצם, מה לבטל — לפי סדר עדיפות (רצוי קודם). משפטים קצרים. ללא כותרות מיותרות.`;
 
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 800,
+      max_tokens: 350,
       messages: [{ role: 'user', content: prompt }],
     });
 
