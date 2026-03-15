@@ -4,8 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { format, startOfMonth } from 'date-fns';
 import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
 import { validateTitle, validateBudget, validateEvents } from '@/lib/validate';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
 
-// 20 new plans per IP per hour
 const LIMIT = 20;
 const WINDOW_MS = 60 * 60 * 1000;
 
@@ -27,7 +27,11 @@ export async function POST(req: NextRequest) {
       : { income: 0, expenses: 0, debtRepayment: 0, bankBalance: 0, startMonth };
     const events = body.events ? validateEvents(body.events) : [];
 
-    const plan = await createPlan({ id, title, budget, events });
+    // Attach to logged-in user if session exists
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const plan = await createPlan({ id, title, budget, events }, user?.id);
     if (!plan) return NextResponse.json({ error: 'Failed to create plan' }, { status: 500 });
 
     return NextResponse.json(plan);
