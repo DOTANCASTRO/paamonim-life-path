@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Plan, Budget, LifeEvent, TimelineResult } from '@/lib/types';
 import { calculateTimeline } from '@/lib/calculator';
 import BudgetSetup from '@/components/BudgetSetup';
@@ -14,7 +14,15 @@ interface Props {
   initialPlan: Plan;
 }
 
-const SAVE_DELAY = 1500; // debounce ms
+const SAVE_DELAY = 1500;
+
+const emptyBudget = (): Budget => ({
+  income: 0,
+  expenses: 0,
+  debtRepayment: 0,
+  bankBalance: 0,
+  startMonth: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+});
 
 export default function PlanClient({ initialPlan }: Props) {
   const [plan, setPlan] = useState<Plan>(initialPlan);
@@ -24,9 +32,9 @@ export default function PlanClient({ initialPlan }: Props) {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [copied, setCopied] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Recalculate whenever budget or events change
   const update = useCallback((newBudget: Budget, newEvents: LifeEvent[]) => {
     const newResult = calculateTimeline(newBudget, newEvents);
     setResult(newResult);
@@ -66,6 +74,18 @@ export default function PlanClient({ initialPlan }: Props) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title }),
     });
+  };
+
+  const handleReset = () => {
+    if (!confirmReset) {
+      setConfirmReset(true);
+      setTimeout(() => setConfirmReset(false), 3000);
+      return;
+    }
+    const budget = emptyBudget();
+    setPlan(p => ({ ...p, budget, events: [] }));
+    update(budget, []);
+    setConfirmReset(false);
   };
 
   const copyLink = () => {
@@ -115,6 +135,17 @@ export default function PlanClient({ initialPlan }: Props) {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleReset}
+            className={`flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg border transition-colors ${
+              confirmReset
+                ? 'bg-red-50 border-red-300 text-red-600 hover:bg-red-100'
+                : 'bg-white border-gray-300 text-gray-500 hover:text-red-500 hover:border-red-300'
+            }`}
+            title="איפוס תכנית"
+          >
+            {confirmReset ? '⚠ לחץ שוב לאישור' : '↺ איפוס'}
+          </button>
           <PDFExport plan={plan} result={result} />
           <button
             onClick={copyLink}
@@ -127,16 +158,9 @@ export default function PlanClient({ initialPlan }: Props) {
 
       {/* Main content */}
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
-        {/* Budget */}
         <BudgetSetup budget={plan.budget} onChange={updateBudget} />
-
-        {/* Events */}
         <EventsTable events={plan.events} onChange={updateEvents} />
-
-        {/* Timeline */}
-        <Timeline result={result} />
-
-        {/* AI advice */}
+        <Timeline result={result} events={plan.events} />
         <AIAdvicePanel budget={plan.budget} events={plan.events} result={result} />
       </div>
     </div>

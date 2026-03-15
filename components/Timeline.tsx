@@ -9,12 +9,20 @@ import {
   CartesianGrid,
   Tooltip,
   ReferenceLine,
-  Legend,
 } from 'recharts';
-import { TimelineResult } from '@/lib/types';
+import { TimelineResult, LifeEvent } from '@/lib/types';
+import { parseISO, format } from 'date-fns';
+
+const HEBREW_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+
+function toHebrewLabel(isoDate: string) {
+  const d = parseISO(isoDate);
+  return `${HEBREW_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
 
 interface Props {
   result: TimelineResult;
+  events: LifeEvent[];
 }
 
 function formatShekel(value: number) {
@@ -23,12 +31,12 @@ function formatShekel(value: number) {
   return `₪${value.toLocaleString()}`;
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
   const data = payload[0]?.payload;
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm" dir="rtl">
-      <p className="font-semibold text-gray-800 mb-1">{label}</p>
+      <p className="font-semibold text-gray-800 mb-1">{data?.label}</p>
       <p className={`font-bold ${data?.cumulativeBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
         יתרה: ₪{data?.cumulativeBalance?.toLocaleString()}
       </p>
@@ -45,14 +53,59 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export default function Timeline({ result }: Props) {
-  // Show every 3rd month label to avoid crowding
-  const chartData = result.months.map((m, i) => ({
-    ...m,
-    shortLabel: i % 6 === 0 ? m.label.replace(' ', '\n') : '',
-  }));
+// Custom label rendered above the reference line
+const EventLabel = ({ viewBox, names }: { viewBox?: { x: number; y: number; height: number }; names: string[] }) => {
+  if (!viewBox) return null;
+  const { x, y } = viewBox;
+  const lineHeight = 13;
+  const padding = 4;
+  const maxWidth = 110;
+  // Truncate long names
+  const labels = names.map(n => n.length > 14 ? n.slice(0, 13) + '…' : n);
 
+  return (
+    <g>
+      <rect
+        x={x + 4}
+        y={y + 4}
+        width={maxWidth}
+        height={labels.length * lineHeight + padding * 2}
+        rx={3}
+        fill="white"
+        stroke="#d1d5db"
+        strokeWidth={1}
+        opacity={0.95}
+      />
+      {labels.map((name, i) => (
+        <text
+          key={i}
+          x={x + 8}
+          y={y + 4 + padding + (i + 1) * lineHeight - 2}
+          fontSize={10}
+          fill="#374151"
+          textAnchor="start"
+        >
+          {name}
+        </text>
+      ))}
+    </g>
+  );
+};
+
+export default function Timeline({ result, events }: Props) {
+  const chartData = result.months.map(m => ({ ...m }));
   const hasOverrun = result.overrunMonths > 0;
+
+  // Group named events by their start month label
+  const eventsByMonth = new Map<string, string[]>();
+  for (const e of events) {
+    if (!e.name) continue;
+    const label = toHebrewLabel(e.startMonth);
+    // Only show if this month exists in the chart data
+    if (!chartData.find(m => m.label === label)) continue;
+    if (!eventsByMonth.has(label)) eventsByMonth.set(label, []);
+    eventsByMonth.get(label)!.push(e.name);
+  }
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -71,8 +124,8 @@ export default function Timeline({ result }: Props) {
       </div>
 
       {/* Chart */}
-      <ResponsiveContainer width="100%" height={320}>
-        <LineChart data={chartData} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+      <ResponsiveContainer width="100%" height={360}>
+        <LineChart data={chartData} margin={{ top: 60, right: 20, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis
             dataKey="label"
@@ -86,7 +139,22 @@ export default function Timeline({ result }: Props) {
             width={70}
           />
           <Tooltip content={<CustomTooltip />} />
+
+          {/* Zero line */}
           <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} strokeDasharray="4 4" />
+
+          {/* Event start markers */}
+          {Array.from(eventsByMonth.entries()).map(([monthLabel, names]) => (
+            <ReferenceLine
+              key={monthLabel}
+              x={monthLabel}
+              stroke="#0C4DA2"
+              strokeWidth={1.5}
+              strokeDasharray="3 3"
+              label={<EventLabel names={names} />}
+            />
+          ))}
+
           <Line
             type="monotone"
             dataKey="cumulativeBalance"
