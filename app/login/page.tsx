@@ -33,13 +33,19 @@ export default function LoginPage() {
         router.refresh();
 
       } else if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
         });
         if (error) throw error;
-        setMessage('נשלח אליך מייל אימות. אשר אותו ואז התחבר.');
+        // If email confirmation is disabled, Supabase returns a session immediately
+        if (data.session) {
+          router.push('/');
+          router.refresh();
+        } else {
+          setMessage('נשלח אליך מייל אימות. אשר אותו ואז התחבר.');
+        }
 
       } else if (mode === 'reset') {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
