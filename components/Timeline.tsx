@@ -214,7 +214,9 @@ export default function Timeline({ result, events }: Props) {
       {/* Year summary strip */}
       <div className="mt-3 grid grid-cols-10 gap-1">
         {Array.from({ length: 10 }, (_, yearIdx) => {
-          const yearMonths = result.months.slice(yearIdx * 12, yearIdx * 12 + 12);
+          // slice(1) skips the starting-balance anchor point
+          const forecastMonths = result.months.slice(1);
+          const yearMonths = forecastMonths.slice(yearIdx * 12, yearIdx * 12 + 12);
           const overruns = yearMonths.filter(m => m.isOverrun).length;
           const endBalance = yearMonths[yearMonths.length - 1]?.cumulativeBalance ?? 0;
           const startYear = yearMonths[0]?.label?.split(' ')[1] ?? '';
