@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { getUserPlans } from '@/lib/db';
 import Header from '@/components/Header';
 import NewPlanButton from '@/components/NewPlanButton';
+import DeletePlanButton from '@/components/DeletePlanButton';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('he-IL', {
@@ -54,9 +55,7 @@ export default async function Home() {
                   <h3 className="font-semibold text-gray-800 group-hover:text-[#0C4DA2] transition-colors leading-snug">
                     {plan.title}
                   </h3>
-                  <svg className="w-4 h-4 text-gray-300 group-hover:text-[#0C4DA2] transition-colors mt-0.5 shrink-0 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+                  <DeletePlanButton planId={plan.id} />
                 </div>
                 <div className="text-xs text-gray-400 space-y-0.5">
                   <div>{plan.events.length} אירועים</div>

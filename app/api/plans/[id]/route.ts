@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPlan, updatePlan } from '@/lib/db';
+import { getPlan, updatePlan, deletePlan } from '@/lib/db';
 import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
+import { createSupabaseRouteHandlerClient } from '@/lib/supabase-server';
 import { validateTitle, validateBudget, validateEvents } from '@/lib/validate';
 
 // 60 reads per IP per minute (auto-save is frequent)
@@ -59,4 +60,27 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const msg = e instanceof Error ? e.message : 'Invalid request';
     return NextResponse.json({ error: msg }, { status: 400 });
   }
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const ip = getClientIp(req);
+  const rl = checkRateLimit(ip, 'write-plan', WRITE_LIMIT, WINDOW_MS);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'יותר מדי בקשות.' }, { status: 429 });
+  }
+
+  const { id } = await params;
+  if (!/^[0-9a-f-]{36}$/.test(id)) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  const res = NextResponse.next();
+  const supabase = createSupabaseRouteHandlerClient(req, res);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const ok = await deletePlan(id, user.id);
+  if (!ok) return NextResponse.json({ error: 'Delete failed' }, { status: 500 });
+
+  return NextResponse.json({ ok: true });
 }

@@ -70,3 +70,13 @@ export async function updatePlan(
 
   return !error;
 }
+
+export async function deletePlan(id: string, userId: string): Promise<boolean> {
+  const { error } = await getServiceSupabase()
+    .from('plans')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId);
+
+  return !error;
+}
