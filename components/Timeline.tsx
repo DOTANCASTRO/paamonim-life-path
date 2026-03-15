@@ -11,7 +11,7 @@ import {
   ReferenceLine,
   ReferenceArea,
 } from 'recharts';
-import { TimelineResult, LifeEvent } from '@/lib/types';
+import { TimelineResult, LifeEvent, MonthlyResult } from '@/lib/types';
 import { parseISO, addMonths, format } from 'date-fns';
 
 const HEBREW_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
@@ -32,7 +32,8 @@ function formatShekel(value: number) {
   return `₪${value.toLocaleString()}`;
 }
 
-const CustomTooltip = ({ active, payload }: any) => {
+interface TooltipProps { active?: boolean; payload?: { payload: MonthlyResult }[] }
+const CustomTooltip = ({ active, payload }: TooltipProps) => {
   if (!active || !payload?.length) return null;
   const data = payload[0]?.payload;
   return (
@@ -55,7 +56,8 @@ const CustomTooltip = ({ active, payload }: any) => {
 };
 
 // Simple text-only label for one-time events (no background box)
-const PointLabel = ({ viewBox, names }: { viewBox?: any; names: string[] }) => {
+interface LabelViewBox { x: number; y: number; height?: number }
+const PointLabel = ({ viewBox, names }: { viewBox?: LabelViewBox; names: string[] }) => {
   if (!viewBox) return null;
   const { x, y } = viewBox;
   return (
@@ -79,7 +81,7 @@ const PointLabel = ({ viewBox, names }: { viewBox?: any; names: string[] }) => {
 };
 
 // Label inside a ReferenceArea (duration events)
-const AreaLabel = ({ viewBox, name, direction }: { viewBox?: any; name: string; direction: 'burden' | 'relief' }) => {
+const AreaLabel = ({ viewBox, name, direction }: { viewBox?: LabelViewBox; name: string; direction: 'burden' | 'relief' }) => {
   if (!viewBox) return null;
   const { x, y } = viewBox;
   const color = direction === 'burden' ? '#dc2626' : '#16a34a';
@@ -214,7 +216,9 @@ export default function Timeline({ result, events }: Props) {
       {/* Year summary strip */}
       <div className="mt-3 grid grid-cols-10 gap-1">
         {Array.from({ length: 10 }, (_, yearIdx) => {
-          const yearMonths = result.months.slice(yearIdx * 12, yearIdx * 12 + 12);
+          // slice(1) skips the starting-balance anchor point
+          const forecastMonths = result.months.slice(1);
+          const yearMonths = forecastMonths.slice(yearIdx * 12, yearIdx * 12 + 12);
           const overruns = yearMonths.filter(m => m.isOverrun).length;
           const endBalance = yearMonths[yearMonths.length - 1]?.cumulativeBalance ?? 0;
           const startYear = yearMonths[0]?.label?.split(' ')[1] ?? '';

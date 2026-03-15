@@ -1,7 +1,7 @@
 'use client';
 
 import { Budget } from '@/lib/types';
-import { format, startOfMonth } from 'date-fns';
+import { format } from 'date-fns';
 
 interface Props {
   budget: Budget;

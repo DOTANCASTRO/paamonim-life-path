@@ -3,7 +3,6 @@
 import { LifeEvent, EventDirection, EventPriority } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { format, startOfMonth } from 'date-fns';
-import { useState } from 'react';
 
 const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
 
@@ -244,7 +243,7 @@ export default function EventsTable({ events, onChange }: Props) {
             {events.length === 0 && (
               <tr>
                 <td colSpan={9} className="text-center py-8 text-gray-400">
-                  אין אירועים עדיין. לחץ על "הוסף אירוע" להתחיל.
+                  אין אירועים עדיין. לחץ על &quot;הוסף אירוע&quot; להתחיל.
                 </td>
               </tr>
             )}

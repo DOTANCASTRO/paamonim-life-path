@@ -24,11 +24,11 @@ export default function AIAdvicePanel({ budget, events, result }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ budget, events, result }),
       });
-      if (!res.ok) throw new Error('שגיאה');
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'שגיאה');
       setAdvice(data.advice);
-    } catch {
-      setError('לא ניתן לקבל המלצות כרגע. נסה שוב.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'לא ניתן לקבל המלצות כרגע. נסה שוב.');
     } finally {
       setLoading(false);
     }
