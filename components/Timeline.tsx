@@ -11,7 +11,7 @@ import {
   ReferenceLine,
   ReferenceArea,
 } from 'recharts';
-import { TimelineResult, LifeEvent } from '@/lib/types';
+import { TimelineResult, LifeEvent, MonthlyResult } from '@/lib/types';
 import { parseISO, addMonths, format } from 'date-fns';
 
 const HEBREW_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
@@ -32,7 +32,8 @@ function formatShekel(value: number) {
   return `₪${value.toLocaleString()}`;
 }
 
-const CustomTooltip = ({ active, payload }: any) => {
+interface TooltipProps { active?: boolean; payload?: { payload: MonthlyResult }[] }
+const CustomTooltip = ({ active, payload }: TooltipProps) => {
   if (!active || !payload?.length) return null;
   const data = payload[0]?.payload;
   return (
@@ -55,7 +56,8 @@ const CustomTooltip = ({ active, payload }: any) => {
 };
 
 // Simple text-only label for one-time events (no background box)
-const PointLabel = ({ viewBox, names }: { viewBox?: any; names: string[] }) => {
+interface LabelViewBox { x: number; y: number; height?: number }
+const PointLabel = ({ viewBox, names }: { viewBox?: LabelViewBox; names: string[] }) => {
   if (!viewBox) return null;
   const { x, y } = viewBox;
   return (
@@ -79,7 +81,7 @@ const PointLabel = ({ viewBox, names }: { viewBox?: any; names: string[] }) => {
 };
 
 // Label inside a ReferenceArea (duration events)
-const AreaLabel = ({ viewBox, name, direction }: { viewBox?: any; name: string; direction: 'burden' | 'relief' }) => {
+const AreaLabel = ({ viewBox, name, direction }: { viewBox?: LabelViewBox; name: string; direction: 'burden' | 'relief' }) => {
   if (!viewBox) return null;
   const { x, y } = viewBox;
   const color = direction === 'burden' ? '#dc2626' : '#16a34a';

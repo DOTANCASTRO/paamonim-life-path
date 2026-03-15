@@ -40,7 +40,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   try {
     const body = await req.json();
-    const updates: Record<string, unknown> = {};
+    const updates: Partial<{ title: string; budget: ReturnType<typeof validateBudget>; events: ReturnType<typeof validateEvents> }> = {};
 
     if (body.title !== undefined) updates.title = validateTitle(body.title);
     if (body.budget !== undefined) updates.budget = validateBudget(body.budget);
@@ -50,7 +50,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
     }
 
-    const ok = await updatePlan(id, updates as any);
+    const ok = await updatePlan(id, updates);
     if (!ok) return NextResponse.json({ error: 'Update failed' }, { status: 500 });
 
     const plan = await getPlan(id);

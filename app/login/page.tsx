@@ -54,14 +54,15 @@ export default function LoginPage() {
         if (error) throw error;
         setMessage('נשלח אליך מייל לאיפוס הסיסמה.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '';
       const msg: Record<string, string> = {
         'Invalid login credentials': 'אימייל או סיסמה שגויים.',
         'Email not confirmed': 'האימייל לא אומת עדיין. בדוק את תיבת הדואר.',
         'User already registered': 'המשתמש כבר קיים. התחבר במקום.',
         'Password should be at least 6 characters': 'הסיסמה חייבת להיות לפחות 6 תווים.',
       };
-      setError(msg[err.message] ?? err.message ?? 'אירעה שגיאה. נסה שוב.');
+      setError(msg[message] ?? message ?? 'אירעה שגיאה. נסה שוב.');
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,8 @@
 import { getSupabase } from './supabase';
 import { Plan } from './types';
 
-function rowToPlan(data: any): Plan {
+interface PlanRow { id: string; title: string; budget: Plan['budget']; events: Plan['events']; created_at: string; updated_at: string }
+function rowToPlan(data: PlanRow): Plan {
   return {
     id: data.id,
     title: data.title,
