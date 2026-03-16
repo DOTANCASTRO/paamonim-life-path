@@ -39,6 +39,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
+  const res = NextResponse.next();
+  const supabase = createSupabaseRouteHandlerClient(req, res);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const body = await req.json();
     const updates: Partial<{ title: string; budget: ReturnType<typeof validateBudget>; events: ReturnType<typeof validateEvents>; notes: string }> = {};
@@ -52,8 +57,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
     }
 
-    const ok = await updatePlan(id, updates);
-    if (!ok) return NextResponse.json({ error: 'Update failed' }, { status: 500 });
+    const ok = await updatePlan(id, user.id, updates);
+    if (!ok) return NextResponse.json({ error: 'Not found or unauthorized' }, { status: 403 });
 
     const plan = await getPlan(id);
     return NextResponse.json(plan);

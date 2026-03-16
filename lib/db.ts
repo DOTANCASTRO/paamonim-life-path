@@ -64,12 +64,14 @@ export async function createPlan(
 
 export async function updatePlan(
   id: string,
+  userId: string,
   updates: Partial<Pick<Plan, 'title' | 'budget' | 'events' | 'notes'>>
 ): Promise<boolean> {
   const { error } = await getServiceSupabase()
     .from('plans')
     .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', userId);
 
   return !error;
 }
