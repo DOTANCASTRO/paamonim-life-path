@@ -31,10 +31,16 @@ export default function PlanClient({ initialPlan }: Props) {
     calculateTimeline(initialPlan.budget, initialPlan.events)
   );
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
+  const [readOnly, setReadOnly] = useState(false);
   const [copied, setCopied] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const handleSaveResponse = (res: Response) => {
+    if (res.status === 401) { setReadOnly(true); return false; }
+    return true;
+  };
 
   const update = useCallback((newBudget: Budget, newEvents: LifeEvent[]) => {
     const newResult = calculateTimeline(newBudget, newEvents);
@@ -45,12 +51,12 @@ export default function PlanClient({ initialPlan }: Props) {
     saveTimer.current = setTimeout(async () => {
       setSaveStatus('saving');
       try {
-        await fetch(`/api/plans/${plan.id}`, {
+        const res = await fetch(`/api/plans/${plan.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ budget: newBudget, events: newEvents }),
         });
-        setSaveStatus('saved');
+        if (handleSaveResponse(res)) setSaveStatus('saved');
       } catch {
         setSaveStatus('unsaved');
       }
@@ -70,11 +76,12 @@ export default function PlanClient({ initialPlan }: Props) {
   const saveTitle = async (title: string) => {
     setPlan(p => ({ ...p, title }));
     setEditingTitle(false);
-    await fetch(`/api/plans/${plan.id}`, {
+    const res = await fetch(`/api/plans/${plan.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title }),
     });
+    handleSaveResponse(res);
   };
 
   const handleReset = () => {
@@ -91,11 +98,12 @@ export default function PlanClient({ initialPlan }: Props) {
 
   const saveNotes = async (notes: string) => {
     setPlan(p => ({ ...p, notes }));
-    await fetch(`/api/plans/${plan.id}`, {
+    const res = await fetch(`/api/plans/${plan.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ notes }),
     });
+    handleSaveResponse(res);
   };
 
   const copyLink = () => {
@@ -135,13 +143,15 @@ export default function PlanClient({ initialPlan }: Props) {
             </button>
           )}
 
-          <span className={`text-xs px-2 py-0.5 rounded-full ${
-            saveStatus === 'saved' ? 'bg-green-100 text-green-600' :
-            saveStatus === 'saving' ? 'bg-yellow-100 text-yellow-600' :
-            'bg-gray-100 text-gray-500'
-          }`}>
-            {saveStatus === 'saved' ? 'שמור' : saveStatus === 'saving' ? 'שומר...' : 'לא שמור'}
-          </span>
+          {!readOnly && (
+            <span className={`text-xs px-2 py-0.5 rounded-full ${
+              saveStatus === 'saved' ? 'bg-green-100 text-green-600' :
+              saveStatus === 'saving' ? 'bg-yellow-100 text-yellow-600' :
+              'bg-gray-100 text-gray-500'
+            }`}>
+              {saveStatus === 'saved' ? 'שמור' : saveStatus === 'saving' ? 'שומר...' : 'לא שמור'}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -165,6 +175,16 @@ export default function PlanClient({ initialPlan }: Props) {
           </button>
         </div>
       </div>
+
+      {/* Read-only banner for link recipients */}
+      {readOnly && (
+        <div className="bg-amber-50 border-b border-amber-200 px-6 py-2.5 flex items-center gap-2 text-sm text-amber-800">
+          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H10m2-6V7m0 0a5 5 0 110 10A5 5 0 0112 7z" />
+          </svg>
+          <span>צפייה בלבד — שינויים לא יישמרו. כדי לערוך, <a href="/login" className="underline font-medium">היכנסו לחשבון</a>.</span>
+        </div>
+      )}
 
       {/* Main content */}
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
