@@ -36,7 +36,7 @@ function escapeHtml(str: string): string {
 export default function PDFExport({ plan, result }: Props) {
   const [loading, setLoading] = useState(false);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     setLoading(true);
 
     const yearSummaries = Array.from({ length: 10 }, (_, yearIdx) => {
@@ -120,17 +120,22 @@ export default function PDFExport({ plan, result }: Props) {
       '</body></html>',
     ].join('');
 
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const win = window.open(url, '_blank');
-    if (win) {
-      win.addEventListener('load', () => {
-        win.print();
-        URL.revokeObjectURL(url);
-        setLoading(false);
+    const filename = `מסלול החיים - ${plan.title}.pdf`;
+    try {
+      const res = await fetch('/api/export-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html, filename }),
       });
-    } else {
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
       URL.revokeObjectURL(url);
+    } finally {
       setLoading(false);
     }
   };
@@ -150,7 +155,7 @@ export default function PDFExport({ plan, result }: Props) {
           מכין...
         </>
       ) : (
-        <>📄 ייצא PDF</>
+        <>📄 הורד PDF</>
       )}
     </button>
   );
