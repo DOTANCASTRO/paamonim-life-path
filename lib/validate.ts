@@ -83,3 +83,7 @@ export function validateEvents(events: unknown): LifeEvent[] {
 export function validateTitle(title: unknown): string {
   return sanitizeString(title, MAX_TITLE_LEN) || 'תכנית חדשה';
 }
+
+export function validateNotes(notes: unknown): string {
+  return sanitizeString(notes, 2000);
+}

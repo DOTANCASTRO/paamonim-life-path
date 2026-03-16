@@ -28,6 +28,7 @@ export interface Plan {
   title: string;
   budget: Budget;
   events: LifeEvent[];
+  notes: string;
   createdAt: string;
   updatedAt: string;
 }

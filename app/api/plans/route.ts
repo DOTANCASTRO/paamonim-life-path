@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     const supabase = createSupabaseRouteHandlerClient(req, res);
     const { data: { user } } = await supabase.auth.getUser();
 
-    const plan = await createPlan({ id, title, budget, events }, user?.id);
+    const plan = await createPlan({ id, title, budget, events, notes: '' }, user?.id);
     if (!plan) return NextResponse.json({ error: 'Failed to create plan' }, { status: 500 });
 
     return NextResponse.json(plan);

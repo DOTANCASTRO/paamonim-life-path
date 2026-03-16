@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPlan, updatePlan, deletePlan } from '@/lib/db';
 import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
 import { createSupabaseRouteHandlerClient } from '@/lib/supabase-server';
-import { validateTitle, validateBudget, validateEvents } from '@/lib/validate';
+import { validateTitle, validateBudget, validateEvents, validateNotes } from '@/lib/validate';
 
 // 60 reads per IP per minute (auto-save is frequent)
 const READ_LIMIT = 60;
@@ -41,11 +41,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   try {
     const body = await req.json();
-    const updates: Partial<{ title: string; budget: ReturnType<typeof validateBudget>; events: ReturnType<typeof validateEvents> }> = {};
+    const updates: Partial<{ title: string; budget: ReturnType<typeof validateBudget>; events: ReturnType<typeof validateEvents>; notes: string }> = {};
 
     if (body.title !== undefined) updates.title = validateTitle(body.title);
     if (body.budget !== undefined) updates.budget = validateBudget(body.budget);
     if (body.events !== undefined) updates.events = validateEvents(body.events);
+    if (body.notes !== undefined) updates.notes = validateNotes(body.notes);
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });

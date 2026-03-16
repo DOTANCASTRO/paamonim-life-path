@@ -103,7 +103,7 @@ export default function PDFExport({ plan, result }: Props) {
       '<div class="summary-grid">',
       `<div class="card"><div class="lbl">הכנסות</div><div class="val">₪${plan.budget.income.toLocaleString()}</div></div>`,
       `<div class="card"><div class="lbl">הוצאות</div><div class="val">₪${plan.budget.expenses.toLocaleString()}</div></div>`,
-      `<div class="card"><div class="lbl">החזר חובות</div><div class="val">₪${plan.budget.debtRepayment.toLocaleString()}</div></div>`,
+      `<div class="card"><div class="lbl">החזר חובות${plan.budget.debtRepaymentMonths > 0 ? `<br><span style="font-size:10px;color:#6b7280">${plan.budget.debtRepaymentMonths} חודשים</span>` : ''}</div><div class="val">₪${plan.budget.debtRepayment.toLocaleString()}</div></div>`,
       `<div class="card"><div class="lbl">יתרה בבנק</div><div class="val">₪${plan.budget.bankBalance.toLocaleString()}</div></div>`,
       '</div>',
       '<h2>סיכום שנתי</h2>',
@@ -112,6 +112,10 @@ export default function PDFExport({ plan, result }: Props) {
       `<h2>אירועי חיים (${plan.events.length})</h2>`,
       '<table><thead><tr><th>#</th><th>אירוע</th><th>סוג</th><th>התחלה</th><th>משך</th><th>סכום</th><th>עדיפות</th></tr></thead>',
       `<tbody>${eventsRows}</tbody></table>`,
+      plan.notes ? [
+        '<h2>הערות</h2>',
+        `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;font-size:13px;white-space:pre-wrap;line-height:1.6">${escapeHtml(plan.notes)}</div>`,
+      ].join('') : '',
       `<div class="footer">כלי זה פותח על ידי פעמונים | Castro Lab | ${new Date().getFullYear()}</div>`,
       '</body></html>',
     ].join('');

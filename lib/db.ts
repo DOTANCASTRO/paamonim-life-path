@@ -1,7 +1,7 @@
 import { getSupabase, getServiceSupabase } from './supabase';
 import { Plan } from './types';
 
-interface PlanRow { id: string; title: string; budget: Plan['budget']; events: Plan['events']; created_at: string; updated_at: string }
+interface PlanRow { id: string; title: string; budget: Plan['budget']; events: Plan['events']; notes: string; created_at: string; updated_at: string }
 
 function rowToPlan(data: PlanRow): Plan {
   const rawBudget = data.budget as Omit<Plan['budget'], 'debtRepaymentMonths'> & { debtRepaymentMonths?: number };
@@ -10,6 +10,7 @@ function rowToPlan(data: PlanRow): Plan {
     title: data.title,
     budget: { ...rawBudget, debtRepaymentMonths: rawBudget.debtRepaymentMonths ?? 0 },
     events: data.events,
+    notes: data.notes ?? '',
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };
@@ -31,7 +32,7 @@ export async function getPlan(id: string): Promise<Plan | null> {
 export async function getUserPlans(userId: string): Promise<Plan[]> {
   const { data, error } = await getServiceSupabase()
     .from('plans')
-    .select('id, title, created_at, updated_at, budget, events')
+    .select('id, title, created_at, updated_at, budget, events, notes')
     .eq('user_id', userId)
     .order('updated_at', { ascending: false });
 
@@ -51,6 +52,7 @@ export async function createPlan(
       title: plan.title,
       budget: plan.budget,
       events: plan.events,
+      notes: plan.notes ?? '',
       ...(userId ? { user_id: userId } : {}),
     })
     .select()
@@ -62,7 +64,7 @@ export async function createPlan(
 
 export async function updatePlan(
   id: string,
-  updates: Partial<Pick<Plan, 'title' | 'budget' | 'events'>>
+  updates: Partial<Pick<Plan, 'title' | 'budget' | 'events' | 'notes'>>
 ): Promise<boolean> {
   const { error } = await getServiceSupabase()
     .from('plans')

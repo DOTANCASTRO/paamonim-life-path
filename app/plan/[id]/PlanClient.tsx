@@ -89,6 +89,15 @@ export default function PlanClient({ initialPlan }: Props) {
     setConfirmReset(false);
   };
 
+  const saveNotes = async (notes: string) => {
+    setPlan(p => ({ ...p, notes }));
+    await fetch(`/api/plans/${plan.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes }),
+    });
+  };
+
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
@@ -162,6 +171,16 @@ export default function PlanClient({ initialPlan }: Props) {
         <BudgetSetup budget={plan.budget} onChange={updateBudget} />
         <EventsTable events={plan.events} onChange={updateEvents} />
         <Timeline result={result} events={plan.events} />
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h2 className="text-lg font-bold text-gray-800 mb-3">הערות</h2>
+          <textarea
+            defaultValue={plan.notes}
+            onBlur={e => saveNotes(e.target.value)}
+            rows={4}
+            placeholder="הערות יועץ, תובנות, פרטים נוספים..."
+            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          />
+        </div>
         <AIAdvicePanel budget={plan.budget} events={plan.events} result={result} />
       </div>
     </div>
