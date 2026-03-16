@@ -18,6 +18,7 @@ export interface Budget {
   income: number;
   expenses: number;
   debtRepayment: number;
+  debtRepaymentMonths: number; // 0 = permanent (no end date)
   bankBalance: number;
   startMonth: string; // ISO date string
 }

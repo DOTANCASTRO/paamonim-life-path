@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const title = validateTitle(body.title);
     const budget = body.budget
       ? validateBudget(body.budget)
-      : { income: 0, expenses: 0, debtRepayment: 0, bankBalance: 0, startMonth };
+      : { income: 0, expenses: 0, debtRepayment: 0, debtRepaymentMonths: 0, bankBalance: 0, startMonth };
     const events = body.events ? validateEvents(body.events) : [];
 
     // Read session from request cookies

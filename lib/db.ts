@@ -4,10 +4,11 @@ import { Plan } from './types';
 interface PlanRow { id: string; title: string; budget: Plan['budget']; events: Plan['events']; created_at: string; updated_at: string }
 
 function rowToPlan(data: PlanRow): Plan {
+  const rawBudget = data.budget as Omit<Plan['budget'], 'debtRepaymentMonths'> & { debtRepaymentMonths?: number };
   return {
     id: data.id,
     title: data.title,
-    budget: data.budget,
+    budget: { ...rawBudget, debtRepaymentMonths: rawBudget.debtRepaymentMonths ?? 0 },
     events: data.events,
     createdAt: data.created_at,
     updatedAt: data.updated_at,

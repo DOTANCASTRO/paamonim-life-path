@@ -13,7 +13,6 @@ export function formatHebrewMonth(isoDate: string): string {
 
 export function calculateTimeline(budget: Budget, events: LifeEvent[], totalMonths = 120): TimelineResult {
   const startDate = startOfMonth(parseISO(budget.startMonth));
-  const monthlyBase = budget.income - budget.expenses - budget.debtRepayment;
   const months: MonthlyResult[] = [];
   let cumulativeBalance = budget.bankBalance;
 
@@ -33,6 +32,10 @@ export function calculateTimeline(budget: Budget, events: LifeEvent[], totalMont
   for (let t = 0; t < totalMonths; t++) {
     const currentDate = addMonths(startDate, t);
     const isoMonth = format(currentDate, 'yyyy-MM-dd');
+
+    // Debt repayment ends after debtRepaymentMonths months (0 = permanent)
+    const debtActive = !budget.debtRepaymentMonths || t < budget.debtRepaymentMonths;
+    const monthlyBase = budget.income - budget.expenses - (debtActive ? budget.debtRepayment : 0);
 
     let eventsImpact = 0;
     const activeEvents: string[] = [];

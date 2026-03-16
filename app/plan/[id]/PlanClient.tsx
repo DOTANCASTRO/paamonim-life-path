@@ -20,6 +20,7 @@ const emptyBudget = (): Budget => ({
   income: 0,
   expenses: 0,
   debtRepayment: 0,
+  debtRepaymentMonths: 0,
   bankBalance: 0,
   startMonth: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
 });

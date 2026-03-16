@@ -18,11 +18,15 @@ export function validateBudget(b: unknown): Budget {
   const income = Number(budget.income ?? 0);
   const expenses = Number(budget.expenses ?? 0);
   const debtRepayment = Number(budget.debtRepayment ?? 0);
+  const debtRepaymentMonths = Math.floor(Number(budget.debtRepaymentMonths ?? 0));
   const bankBalance = Number(budget.bankBalance ?? 0);
 
   if (!isFinitePositive(income)) throw new Error('Invalid income');
   if (!isFinitePositive(expenses)) throw new Error('Invalid expenses');
   if (!isFinitePositive(debtRepayment)) throw new Error('Invalid debtRepayment');
+  if (!Number.isInteger(debtRepaymentMonths) || debtRepaymentMonths < 0 || debtRepaymentMonths > 1200) {
+    throw new Error('Invalid debtRepaymentMonths');
+  }
   if (typeof bankBalance !== 'number' || !isFinite(bankBalance) || Math.abs(bankBalance) > MAX_AMOUNT) {
     throw new Error('Invalid bankBalance');
   }
@@ -30,7 +34,7 @@ export function validateBudget(b: unknown): Budget {
   const startMonth = String(budget.startMonth ?? '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(startMonth)) throw new Error('Invalid startMonth');
 
-  return { income, expenses, debtRepayment, bankBalance, startMonth };
+  return { income, expenses, debtRepayment, debtRepaymentMonths, bankBalance, startMonth };
 }
 
 export function sanitizeString(s: unknown, maxLen: number): string {
